@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		44460D831E3017E1009EAF79 /* MessageToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44460D821E3017E1009EAF79 /* MessageToolbar.swift */; };
 		44460D851E315B35009EAF79 /* CommentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44460D841E315B35009EAF79 /* CommentView.swift */; };
+		445011B41E38013500E87E11 /* CoreExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 445011B31E38013500E87E11 /* CoreExtensions.swift */; };
 		44F1CF4F1E3013220097583C /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F1CF4E1E3013220097583C /* AppDelegate.swift */; };
 		44F1CF511E3013220097583C /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F1CF501E3013220097583C /* ViewController.swift */; };
 		44F1CF541E3013220097583C /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 44F1CF521E3013220097583C /* Main.storyboard */; };
@@ -38,6 +39,7 @@
 /* Begin PBXFileReference section */
 		44460D821E3017E1009EAF79 /* MessageToolbar.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MessageToolbar.swift; sourceTree = "<group>"; };
 		44460D841E315B35009EAF79 /* CommentView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CommentView.swift; sourceTree = "<group>"; };
+		445011B31E38013500E87E11 /* CoreExtensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CoreExtensions.swift; sourceTree = "<group>"; };
 		44F1CF4B1E3013220097583C /* MessageToolbar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MessageToolbar.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		44F1CF4E1E3013220097583C /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		44F1CF501E3013220097583C /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -101,14 +103,15 @@
 		44F1CF4D1E3013220097583C /* MessageToolbar */ = {
 			isa = PBXGroup;
 			children = (
+				44F1CF5A1E3013220097583C /* Info.plist */,
 				44F1CF4E1E3013220097583C /* AppDelegate.swift */,
+				44460D841E315B35009EAF79 /* CommentView.swift */,
+				445011B31E38013500E87E11 /* CoreExtensions.swift */,
+				44460D821E3017E1009EAF79 /* MessageToolbar.swift */,
 				44F1CF501E3013220097583C /* ViewController.swift */,
-				44F1CF521E3013220097583C /* Main.storyboard */,
 				44F1CF551E3013220097583C /* Assets.xcassets */,
 				44F1CF571E3013220097583C /* LaunchScreen.storyboard */,
-				44F1CF5A1E3013220097583C /* Info.plist */,
-				44460D821E3017E1009EAF79 /* MessageToolbar.swift */,
-				44460D841E315B35009EAF79 /* CommentView.swift */,
+				44F1CF521E3013220097583C /* Main.storyboard */,
 			);
 			path = MessageToolbar;
 			sourceTree = "<group>";
@@ -269,6 +272,7 @@
 				44F1CF511E3013220097583C /* ViewController.swift in Sources */,
 				44460D851E315B35009EAF79 /* CommentView.swift in Sources */,
 				44F1CF4F1E3013220097583C /* AppDelegate.swift in Sources */,
+				445011B41E38013500E87E11 /* CoreExtensions.swift in Sources */,
 				44460D831E3017E1009EAF79 /* MessageToolbar.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

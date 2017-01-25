@@ -1,5 +1,3 @@
-
-
 //
 //  FLTextView.swift
 //  MessageToolbar
@@ -10,22 +8,24 @@
 
 import UIKit
 
+@objc
+protocol CommentViewDelegate: UITextViewDelegate {
+    @objc optional func sendButtonTapped()
+}
+
 class CommentView: UITextView {
 
     // MARK: - Properties
 
     private let contentMargin: CGFloat = 8.0
-    private let placeholderMargin: CGFloat = 12.0
     private let sendButtonVerticalMargin: CGFloat = 3.0
 
     var sendButtonIsHidden = true {
         didSet {
             sendButton.isHidden = sendButtonIsHidden
             setNeedsLayout()
-            layoutIfNeeded()
         }
     }
-
 
     var placeholder: String? {
         didSet {
@@ -33,12 +33,19 @@ class CommentView: UITextView {
             updatePlaceholderVisibility()
         }
     }
-    
+
+    var placeholderInset: UIEdgeInsets = UIEdgeInsets(top: 8.0, left: 12.0, bottom: 0.0, right: 0.0) {
+        didSet {
+            setNeedsLayout()
+        }
+    }
+
     // MARK: Components
 
     let sendButton: UIButton = {
         let button = UIButton(type: .system)
         button.setTitle("Send", for: .normal)
+        button.addTarget(self, action: #selector(CommentView.sendButtonTapped), for: .touchUpInside)
         return button
     }()
 
@@ -76,7 +83,11 @@ class CommentView: UITextView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        placeholderLabel.frame = bounds.insetBy(dx: placeholderMargin, dy: placeholderMargin)
+
+        placeholderLabel.frame = UIEdgeInsetsInsetRect(bounds, placeholderInset)
+        let actualSize = placeholderLabel.sizeThatFits(placeholderLabel.bounds.size)
+        placeholderLabel.frame.size.height = actualSize.height
+
         sendButton.sizeToFit()
 
         let centerDelta = (frame.height - sendButton.bounds.height)
@@ -90,6 +101,13 @@ class CommentView: UITextView {
     private func updatePlaceholderVisibility() {
         let isPlaceholderTextEmpty = placeholder?.isEmpty ?? true
         placeholderLabel.isHidden = isPlaceholderTextEmpty || !text.isEmpty
+    }
+
+    // MARK: - Events
+
+    @objc
+    private func sendButtonTapped() {
+        (delegate as? CommentViewDelegate)?.sendButtonTapped?()
     }
 
     // MARK: - Notifications

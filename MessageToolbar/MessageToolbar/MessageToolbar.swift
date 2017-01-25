@@ -8,14 +8,9 @@
 
 import UIKit
 
-protocol MessageToolbarDelegate: class {
-    func textDidChange()
-    func sendButtonPressed()
-}
-
-extension MessageToolbarDelegate {
-    func textDidChange() {}
-    func sendButtonPressed() {}
+@objc protocol MessageToolbarDelegate: class {
+    @objc optional func textDidChange()
+    @objc optional func sendButtonTapped()
 }
 
 class MessageToolbar: UIView {
@@ -37,25 +32,27 @@ class MessageToolbar: UIView {
     }
 
     var appropriateHeight: CGFloat {
-        return max(min(intrinsicContentSize.height, maxHeight), minHeight)
+        return intrinsicContentSize.height.clamped(to: minHeight...maxHeight)
     }
 
     var borderColor = UIColor(red: 197.0/255.0, green: 203.0/255.0, blue: 209.0/255.0, alpha: 1.0)
 
     var selectedBorderColor = UIColor(red: 0.0, green: 142.0/255.0, blue: 208.0/255.0, alpha: 1.0)
 
-
     var placeholder: String? {
-        didSet {
-            commentField.placeholder = placeholder
+        get {
+            return commentField.placeholder
+        }
+        set {
+            commentField.placeholder = newValue
         }
     }
 
     // MARK: Components
 
     let topLine: UIView = {
-        let view = UIView(frame: CGRect(x: 0.0, y: -1.0, width: 0.0, height: 1.0))
-        view.autoresizingMask = [.flexibleWidth]
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
 
@@ -90,7 +87,8 @@ class MessageToolbar: UIView {
             internalLeftButtons.forEach({ $0.isHidden = false })
 
             let fullWidth = internalLeftButtons.map({ $0.bounds.width }).reduce(0, +)
-            leftButtonContainerWidthConstraint.constant = fullWidth
+            let maxHeight = internalLeftButtons.map({ $0.bounds.height }).max() ?? 0.0
+            leftButtonsContainer.frame.size = CGSize(width: fullWidth, height: maxHeight)
 
             layoutIfNeeded()
         }
@@ -101,14 +99,14 @@ class MessageToolbar: UIView {
         stackView.translatesAutoresizingMaskIntoConstraints = false
         stackView.alignment = .fill
         stackView.axis = .horizontal
-        stackView.distribution = .fillProportionally
-        stackView.backgroundColor = .white
+        stackView.distribution = .fill
+        stackView.backgroundColor = .cyan
         return stackView
     }()
 
-    private var leftButtonContainerWidthConstraint: NSLayoutConstraint!
-
     private var initialHeight: CGFloat = 44.0
+
+    private var shouldBecomeFirstResponder = false
 
     // MARK: Computed properties
 
@@ -133,22 +131,11 @@ class MessageToolbar: UIView {
         commentField.delegate = self
         commentField.layer.borderColor = borderColor.cgColor
         topLine.backgroundColor = borderColor
+        initialHeight = bounds.height
 
         addSubview(topLine)
         addSubview(commentField)
         addSubview(leftButtonsContainer)
-
-        let verticalMargin: CGFloat = 4.0
-        initialHeight = bounds.height
-        let contentHeight = initialHeight - (verticalMargin * 2.0)
-        let metrics = ["verticalMargin": verticalMargin, "buttonsHeight": contentHeight]
-        let views: [String: UIView] = ["commentField": commentField, "buttonContainer": leftButtonsContainer]
-        addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "H:|-[buttonContainer]-[commentField]-|", options: [], metrics: metrics, views: views))
-        addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "V:|-verticalMargin-[commentField]-verticalMargin-|", options: [], metrics: metrics, views: views))
-
-        leftButtonContainerWidthConstraint = NSLayoutConstraint(item: leftButtonsContainer, attribute: .width, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1.0, constant: 0.0)
-        addConstraint(leftButtonContainerWidthConstraint)
-        addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "V:[buttonContainer(==buttonsHeight)]-verticalMargin-|", options: [], metrics: metrics, views: views))
     }
 
     // MARK: - Layout
@@ -163,27 +150,45 @@ class MessageToolbar: UIView {
         }
     }
 
+    override func layoutSubviews() {
+        super.layoutSubviews()
+
+        topLine.frame = CGRect(x: 0.0, y: -1.0, width: bounds.width, height: 1.0)
+
+        let horizontalMargin: CGFloat = 8.0
+        let verticalMargin: CGFloat = 4.0
+        if hasLeftButtons {
+            let vGap = (initialHeight - leftButtonsContainer.bounds.height) / 2.0
+            let y = bounds.height - leftButtonsContainer.bounds.height - vGap
+            leftButtonsContainer.frame.origin = CGPoint(x: horizontalMargin, y: y)
+        }
+
+        let inputX = leftButtonsContainer.frame.maxX + horizontalMargin
+        let inputWidth = bounds.width - inputX - horizontalMargin
+        let inputHeight = bounds.height - (verticalMargin * 2.0)
+        commentField.frame = CGRect(x: inputX, y: verticalMargin, width: inputWidth, height: inputHeight)
+    }
+
     // MARK: - Events
-
     @objc private func leftButtonsToggleTapped() {
+        // we only need to become first responder if the toggle button is tapped
+        // other than that we should avoid it because introduce weird behavior
+        // when scrolling the tableview
+        shouldBecomeFirstResponder = true
         becomeFirstResponder()
-
+        shouldBecomeFirstResponder = false
     }
 
     // MARK: - UIResponder
 
     override var canBecomeFirstResponder: Bool {
-        return true
-    }
-
-    override var canResignFirstResponder: Bool {
-        return true
+       return shouldBecomeFirstResponder
     }
 }
 
 // MARK: - UIKeyInput
 
-// UIKitInpuy allows us to become first responders while keeping the keyboard up
+// UIKeyInput allows us to become first responders while keeping the keyboard up
 extension MessageToolbar: UIKeyInput {
 
     func insertText(_ text: String) {
@@ -201,7 +206,7 @@ extension MessageToolbar: UIKeyInput {
 
 // MARK: - UITextViewDelegate
 
-extension MessageToolbar: UITextViewDelegate {
+extension MessageToolbar: CommentViewDelegate {
     func textViewDidBeginEditing(_ textView: UITextView) {
         invalidateIntrinsicContentSize()
         textView.layer.borderColor = selectedBorderColor.cgColor
@@ -219,6 +224,10 @@ extension MessageToolbar: UITextViewDelegate {
 
     func textViewDidChange(_ textView: UITextView) {
         invalidateIntrinsicContentSize()
-        delegate?.textDidChange()
+        delegate?.textDidChange?()
+    }
+
+    func sendButtonTapped() {
+        delegate?.sendButtonTapped?()
     }
 }
