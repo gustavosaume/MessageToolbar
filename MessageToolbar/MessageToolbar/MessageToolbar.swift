@@ -100,7 +100,6 @@ class MessageToolbar: UIView {
         stackView.alignment = .fill
         stackView.axis = .horizontal
         stackView.distribution = .fill
-        stackView.backgroundColor = .cyan
         return stackView
     }()
 
@@ -128,6 +127,7 @@ class MessageToolbar: UIView {
 
     private func commonInit() {
         autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        backgroundColor = .white
         commentField.delegate = self
         commentField.layer.borderColor = borderColor.cgColor
         topLine.backgroundColor = borderColor
@@ -182,7 +182,7 @@ class MessageToolbar: UIView {
     // MARK: - UIResponder
 
     override var canBecomeFirstResponder: Bool {
-       return shouldBecomeFirstResponder
+        return shouldBecomeFirstResponder
     }
 }
 
