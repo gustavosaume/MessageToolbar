@@ -13,11 +13,23 @@ import UIKit
     @objc optional func sendButtonTapped()
 }
 
+class MessageMediaCell: UICollectionViewCell {}
+
+@objc protocol MessageToolbarDataSource: class {
+    func numberOfMedia(in messageToolbar: MessageToolbar) -> Int
+    func messageToolbar(_ messageToolbar: MessageToolbar, cellForMediaAt indexPath: IndexPath) -> MessageMediaCell
+}
+
 class MessageToolbar: UIView {
 
     // MARK: - Properties
 
     weak var delegate: MessageToolbarDelegate?
+    weak var datasource: MessageToolbarDataSource? {
+        didSet {
+            reloadMedia()
+        }
+    }
 
     var minHeight: CGFloat = 44.0 {
         didSet {
@@ -79,6 +91,18 @@ class MessageToolbar: UIView {
         }
     }
 
+    let mediaCollection: UICollectionView = {
+        let layout = UICollectionViewFlowLayout()
+        layout.scrollDirection = .horizontal
+        layout.estimatedItemSize = CGSize(width: 80.0, height: 120.0)
+        layout.minimumInteritemSpacing = 8.0
+        let collection = UICollectionView(frame: CGRect.zero, collectionViewLayout: layout)
+        collection.contentInset = UIEdgeInsets(top: 8.0, left: 8.0, bottom: 8.0, right: 8.0)
+        collection.collectionViewLayout = layout
+        collection.backgroundColor = .magenta
+        return collection
+    }()
+
     fileprivate var internalLeftButtons = [UIButton]() {
         didSet {
             oldValue.forEach({ $0.isHidden = true })
@@ -105,12 +129,22 @@ class MessageToolbar: UIView {
 
     private var initialHeight: CGFloat = 44.0
 
+    private var mediaHeight: CGFloat = 136.0
+
     private var shouldBecomeFirstResponder = false
 
     // MARK: Computed properties
 
     var hasLeftButtons: Bool {
         return leftButtons.count > 0
+    }
+
+    var hasMedia: Bool {
+        return (datasource?.numberOfMedia(in: self) ?? 0) > 0
+    }
+
+    var isShowingMedia: Bool {
+        return hasMedia && commentField.isFirstResponder
     }
 
     // MARK: - Lifecycle
@@ -133,9 +167,14 @@ class MessageToolbar: UIView {
         topLine.backgroundColor = borderColor
         initialHeight = bounds.height
 
+        mediaCollection.delegate = self
+        mediaCollection.dataSource = self
+
         addSubview(topLine)
         addSubview(commentField)
         addSubview(leftButtonsContainer)
+
+        commentField.addSubview(mediaCollection)
     }
 
     // MARK: - Layout
@@ -143,7 +182,9 @@ class MessageToolbar: UIView {
     override var intrinsicContentSize: CGSize {
         if commentField.isFirstResponder {
             let textSize = commentField.sizeThatFits(CGSize(width: commentField.bounds.width, height: maxHeight))
-            let height = max(min(textSize.height, maxHeight), minHeight)
+            var height = max(min(textSize.height, maxHeight), minHeight)
+            height += hasMedia ? mediaHeight : 0.0
+
             return CGSize(width: UIViewNoIntrinsicMetric, height: height)
         } else {
             return CGSize(width: UIViewNoIntrinsicMetric, height: initialHeight)
@@ -167,6 +208,12 @@ class MessageToolbar: UIView {
         let inputWidth = bounds.width - inputX - horizontalMargin
         let inputHeight = bounds.height - (verticalMargin * 2.0)
         commentField.frame = CGRect(x: inputX, y: verticalMargin, width: inputWidth, height: inputHeight)
+
+        if isShowingMedia {
+            mediaCollection.frame = CGRect(x: 0.0, y: -mediaHeight, width: commentField.bounds.width, height: mediaHeight)
+        } else {
+            mediaCollection.frame = CGRect.zero
+        }
     }
 
     // MARK: - Events
@@ -175,7 +222,7 @@ class MessageToolbar: UIView {
         // other than that we should avoid it because introduce weird behavior
         // when scrolling the tableview
         shouldBecomeFirstResponder = true
-        becomeFirstResponder()
+        _ = becomeFirstResponder()
         shouldBecomeFirstResponder = false
     }
 
@@ -184,6 +231,54 @@ class MessageToolbar: UIView {
     override var canBecomeFirstResponder: Bool {
         return shouldBecomeFirstResponder
     }
+
+    // MARK: - UICollectionView mapping
+
+    func reloadMedia() {
+        mediaCollection.reloadData()
+        updateContentInsets()
+    }
+
+    func register(mediaCellClass: AnyClass?) {
+        mediaCollection.register(mediaCellClass, forCellWithReuseIdentifier: "mediaCell")
+    }
+
+    func dequeueReusableMediaCell(for indexPath: IndexPath) -> MessageMediaCell {
+        guard let cell = mediaCollection.dequeueReusableCell(withReuseIdentifier: "mediaCell", for: indexPath) as? MessageMediaCell else {
+            fatalError("Incorrect cell dequeued")
+        }
+
+        return cell
+    }
+
+    // MARK: - private behavior
+
+    func updateContentInsets() {
+        let top = isShowingMedia ? mediaHeight : 0.0
+        commentField.contentInset.top = top
+        commentField.placeholderInset.top = top + 8.0
+    }
+}
+
+
+// MARK: - UICollectionView data source
+
+extension MessageToolbar: UICollectionViewDataSource {
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        return datasource?.numberOfMedia(in: self) ?? 0
+    }
+
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        guard let cell =  datasource?.messageToolbar(self, cellForMediaAt: indexPath) else {
+            fatalError("Missing cell at \(indexPath)")
+        }
+
+        return cell
+    }
+}
+
+extension MessageToolbar: UICollectionViewDelegate {
+
 }
 
 // MARK: - UIKeyInput
@@ -208,6 +303,7 @@ extension MessageToolbar: UIKeyInput {
 
 extension MessageToolbar: CommentViewDelegate {
     func textViewDidBeginEditing(_ textView: UITextView) {
+        updateContentInsets()
         invalidateIntrinsicContentSize()
         textView.layer.borderColor = selectedBorderColor.cgColor
 
@@ -217,6 +313,7 @@ extension MessageToolbar: CommentViewDelegate {
     }
 
     func textViewDidEndEditing(_ textView: UITextView) {
+        updateContentInsets()
         invalidateIntrinsicContentSize()
         textView.layer.borderColor = borderColor.cgColor
         internalLeftButtons = leftButtons

@@ -25,6 +25,10 @@ class ViewController: UIViewController {
     fileprivate lazy var toolbar: MessageToolbar = {
         let toolbar = MessageToolbar(frame: CGRect(x: 0.0, y: 0.0, width: 0.0, height: 44.0))
         toolbar.placeholder = "w00t w00t"
+
+        toolbar.register(mediaCellClass: BasicCell.self)
+        toolbar.delegate = self
+        toolbar.datasource = self
         return toolbar
     }()
 
@@ -36,6 +40,10 @@ class ViewController: UIViewController {
     override var canBecomeFirstResponder: Bool {
         return true
     }
+
+    //MARK: - Media
+
+    let media = [Mediadata(title: "A"), Mediadata(title: "B"), Mediadata(title: "C"), Mediadata(title: "D"),]
 
     //MARK: - Lifecycle
 
@@ -65,6 +73,22 @@ class ViewController: UIViewController {
     }
 }
 
+extension ViewController: MessageToolbarDataSource {
+    func numberOfMedia(in messageToolbar: MessageToolbar) -> Int {
+        return media.count
+    }
+
+    func messageToolbar(_ messageToolbar: MessageToolbar, cellForMediaAt indexPath: IndexPath) -> MessageMediaCell {
+        guard let cell = messageToolbar.dequeueReusableMediaCell(for: indexPath) as? BasicCell else {
+            fatalError("incorrect cell")
+        }
+
+        let mediaData = media[indexPath.row]
+        cell.title.text = mediaData.title
+        return cell
+    }
+}
+
 extension ViewController: MessageToolbarDelegate {
     func sendButtonPressed() {
         print("pressed")
@@ -86,12 +110,37 @@ extension ViewController: UITableViewDataSource {
 extension ViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         resignFirstResponder()
-        toolbar.resignFirstResponder()
+        _ = toolbar.resignFirstResponder()
         view.endEditing(true)
 
         let alert = UIAlertController(title: "Selected", message: String(indexPath.row), preferredStyle: .alert)
         let okAction = UIAlertAction(title: "Ok", style: .default, handler: nil)
         alert.addAction(okAction)
         present(alert, animated: true, completion: nil)
+    }
+}
+
+struct Mediadata {
+    let title: String
+}
+
+class BasicCell: MessageMediaCell {
+    let title = UILabel()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        addSubview(title)
+    }
+
+    required init?(coder aDecoder: NSCoder) {
+        super.init(coder: aDecoder)
+        backgroundColor = .cyan
+        title.backgroundColor = .cyan
+        title.textAlignment = .center
+        addSubview(title)
+    }
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        title.frame.size = bounds.size
     }
 }
